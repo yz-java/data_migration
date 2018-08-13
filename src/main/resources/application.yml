@@ -1,0 +1,21 @@
+
+
+spring:
+  http:
+    encoding:
+      force: true
+      charset: utf-8
+      enabled: true
+  application:
+    name: data migration
+  resources:
+    static-locations: classpath:/
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+
+
+server:
+  tomcat:
+    uri-encoding: utf-8
+

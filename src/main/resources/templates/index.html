@@ -1,0 +1,260 @@
+<html>
+<head lang="zh-CN">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=no"/>
+    <title>不同数据库数据迁移</title>
+    <link href="//cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" rel="stylesheet"/>
+    <link href="//cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"/>
+    <script src="//cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="//cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>
+    <script type="application/javascript">
+        //<![CDATA[
+        function querySourceTables(flag) {
+            var databaseType = $("#source_databaseType").val();
+            $.post("/tables",{databaseType:databaseType,flag:flag},function (data) {
+                var html = "";
+                data.forEach(function(value,index){
+                    html+='<button type="button" class="btn btn-default" onclick="querySourceTableFields(this.value)" value="'+value+'">'+value+'</button>';
+                });
+                $("#source_tables").html(html);
+            });
+        }
+        function querySourceTableFields(tableName) {
+            var databaseType = $("#source_databaseType").val();
+            $.post("/table/fields",{"databaseType":databaseType,"tableName":tableName,flag:1},function (data) {
+                var html = "<p>请勾选需要导出的字段：</p>";
+                data.forEach(function(value,index){
+                    html+='<input type="checkbox" name="source_fields" onclick="sourceFieldClick(this)" value="'+value+'"/>'+value+'&nbsp;&nbsp;&nbsp;&nbsp;';
+                });
+                $("#source_table_fields").html(html);
+                $("#tableName").val(tableName);
+            });
+        }
+
+        function source_connection(flag) {
+            var databaseType = $("#source_databaseType").val();
+            var source_url = $("#source_url").val();
+            var source_user_name = $("#source_user_name").val();
+            var source_password = $("#source_password").val();
+            $.post("/create_datasource",{databaseType:databaseType,url:source_url,userName:source_user_name,passWord:source_password,flag:flag},function (data) {
+                if (data){
+                    alert("连接成功");
+                }else{
+                    alert("连接失败");
+                }
+            });
+        }
+        function queryTargetSourceTables(flag) {
+            var databaseType = $("#target_source_databaseType").val();
+            $.post("/tables",{databaseType:databaseType,flag:flag},function (data) {
+                var html = "";
+                data.forEach(function(value,index){
+                    html+='<button type="button" class="btn btn-default" onclick="queryTargetSourceTableFields(this.value)" value="'+value+'">'+value+'</button>';
+                });
+                $("#target_source_tables").html(html);
+            });
+        }
+        function queryTargetSourceTableFields(tableName) {
+            var databaseType = $("#target_source_databaseType").val();
+            $.post("/table/fields",{"databaseType":databaseType,"tableName":tableName,flag:2},function (data) {
+                var html = "<p>请勾选需要导入的字段：</p>";
+                data.forEach(function(value,index){
+                    html+='<input type="checkbox" name="target_source_fields" onclick="targetSourceFieldClick(this);" value="'+value+'"/>'+value+'&nbsp;&nbsp;&nbsp;&nbsp;';
+                });
+                $("#target_source_table_fields").html(html);
+                $("#targetTableName").val(tableName);
+            });
+        }
+
+        function target_Source_connection(flag) {
+            var databaseType = $("#target_source_databaseType").val();
+            var source_url = $("#target_source_url").val();
+            var source_user_name = $("#target_source_user_name").val();
+            var source_password = $("#target_source_password").val();
+            $.post("/create_datasource",{databaseType:databaseType,url:source_url,userName:source_user_name,passWord:source_password,flag:flag},function (data) {
+                if (data){
+                    alert("连接成功");
+                }else{
+                    alert("连接失败");
+                }
+            });
+        }
+        var fields = null;
+        var targetFields = null;
+        function migration() {
+            var tableName = $("#tableName").val();
+            var targetTableName = $("#targetTableName").val();
+            fields=$("#source_fields").html().split(',');
+            targetFields = $("#target_fields").html().split(',');
+            $.ajax({
+                url:"/data/migration",
+                data:{fields:fields,targetFields:targetFields,tableName:tableName,targetTableName:targetTableName},
+                dataType: "json",
+                type: "POST",
+                traditional: true,
+                success: function (data) {
+
+                    alert(data);
+                }
+            })
+        }
+
+        function sourceFieldClick(e) {
+            var source_fields = $("#source_fields").html();
+
+            if (e.checked){
+                if (source_fields==null||source_fields==''){
+                    $("#source_fields").html(e.value+",");
+                }else{
+                    $("#source_fields").html(source_fields+e.value+",");
+                }
+            }else{
+                var source_fields = source_fields.split(',');
+                var f = "";
+                source_fields.forEach(function(value,i){
+                    if (e!=null&&value!=''&&value!=e.value){
+                        f+=value+",";
+                    }
+                });
+
+                $("#source_fields").html(f);
+            }
+
+        }
+        function targetSourceFieldClick(e) {
+            var tartget_source_fields = $("#target_fields").html();
+            if (e.checked){
+                if (tartget_source_fields==null||tartget_source_fields==''){
+                    $("#target_fields").html(e.value+",");
+                }else{
+                    $("#target_fields").html(tartget_source_fields+e.value+",");
+                }
+            }else{
+                var source_fields = tartget_source_fields.split(',');
+                var f = "";
+                source_fields.forEach(function(value,i){
+                    if (e!=null&&value!=''&&value!=e.value){
+                        f+=value+",";
+                    }
+                });
+
+                $("#target_fields").html(f);
+            }
+
+        }
+
+        function execute() {
+            var source_sql = $("#source_sql").val();
+            alert(source_sql);
+            var target_sql = $("#target_sql").val();
+            $.post("/sql/execute",{sourceSql:source_sql,tegetSql:target_sql},function(data){
+                alert("成功迁移"+data+"条");
+            });
+        }
+        //]]>
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center">数据迁移</h1>
+        <div class="col-xs-6">
+            <h3 style="text-align: center">源数据库配置信息</h3>
+            <form>
+                <select id="source_databaseType" name="database_type">
+                    <option>请选择数据库</option>
+                    <option value="1">mysql</option>
+                    <option value="2">sqlite</option>
+                    <option value="3">postgresql</option>
+                    <option value="4">sqlserver</option>
+                </select>
+                <div class="form-group">
+                    <label for="source_url">URL</label>
+                    <input type="text" class="form-control" id="source_url" placeholder="url"/>
+                </div>
+                <div class="form-group">
+                    <label for="source_user_name">User Name</label>
+                    <input type="text" class="form-control" id="source_user_name" placeholder="账号"/>
+                </div>
+                <div class="form-group">
+                    <label for="source_password">Password</label>
+                    <input type="password" class="form-control" id="source_password" placeholder="密码"/>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-default" onclick="source_connection(1);">连接测试</button>
+                    <button type="button" class="btn btn-default" onclick="querySourceTables(1);">查询所有表</button>
+                </div>
+            </form>
+            <div id="source_tables" class="col-xs-12">
+
+            </div>
+            <div id="source_table_fields" class="col-xs-12">
+
+            </div>
+            <div class="col-xs-12">
+                <p>已勾选的字段：</p>
+                <textarea id="source_fields" rows="10" cols="50"></textarea>
+            </div>
+        </div>
+        <div class="col-xs-6">
+            <h3 style="text-align: center">目标数据库配置信息</h3>
+            <form>
+                <select id="target_source_databaseType" name="database_type">
+                    <option>请选择数据库</option>
+                    <option value="1">mysql</option>
+                    <option value="2">sqlite</option>
+                    <option value="3">postgresql</option>
+                    <option value="4">sqlserver</option>
+                </select>
+                <div class="form-group">
+                    <label for="target_source_url">URL</label>
+                    <input type="text" class="form-control" id="target_source_url" placeholder="url"/>
+                </div>
+                <div class="form-group">
+                    <label for="target_source_user_name">User Name</label>
+                    <input type="text" class="form-control" id="target_source_user_name" placeholder="账号"/>
+                </div>
+                <div class="form-group">
+                    <label for="target_source_password">Password</label>
+                    <input type="password" class="form-control" id="target_source_password" placeholder="密码"/>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-default" onclick="target_Source_connection(2);">连接测试</button>
+                    <button type="button" class="btn btn-default" onclick="queryTargetSourceTables(2);">查询所有表</button>
+                </div>
+            </form>
+            <div id="target_source_tables" class="col-xs-12">
+
+            </div>
+            <div id="target_source_table_fields" class="col-xs-12">
+
+            </div>
+            <div class="col-xs-12">
+                <p>已勾选的字段：</p>
+                <textarea id="target_fields" rows="10" cols="50"></textarea>
+            </div>
+        </div>
+
+        <div class="form-group" style="text-align: center">
+            <button class="btn btn-warning" onclick="migration()">数据同步</button>
+        </div>
+        <hr />
+        <div class="col-xs-12">
+            <div class="col-xs-6">
+                <p>请输入源数据库执行的sql语句：</p>
+                <textarea id="source_sql" rows="10" cols="50"></textarea>
+            </div>
+            <div class="col-xs-6">
+                <p>请输入目标数据库执行的sql语句：</p>
+                <textarea id="target_sql" rows="10" cols="50"></textarea>
+            </div>
+        </div>
+        <div class="col-xs-12" style="text-align: center">
+            <button type="button" class="btn btn-warning" onclick="execute();">执行</button>
+        </div>
+    </div>
+
+
+    <input type="hidden" id="tableName"/>
+    <input type="hidden" id="targetTableName"/>
+</body>
+</html>
